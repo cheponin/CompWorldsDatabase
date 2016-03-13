@@ -142,14 +142,13 @@ ASSET_MANAGER.queueDownload("./img/960px-Blank_Go_board.png");
 ASSET_MANAGER.queueDownload("./img/black.png");
 ASSET_MANAGER.queueDownload("./img/white.png");
 
+var gameEngine = new GameEngine();
 var circles = [];
 
 ASSET_MANAGER.downloadAll(function () {
     console.log("starting up da sheild");
     var canvas = document.getElementById('gameWorld');
     var ctx = canvas.getContext('2d');
-
-    var gameEngine = new GameEngine();
 
     for (var i = 1; i <= 10; i++) {
         var circle = new Circle(gameEngine);
@@ -170,73 +169,35 @@ var socket = io.connect("http://76.28.150.193:8888");
 
 socket.on("load", function (data) {
     console.log(data);
+
+    var circles_data = data.data;
+
+    for (var k = 0; k < gameEngine.entities.length; k++) {
+        var ent = gameEngine.entities[k];
+        ent.removeFromWorld = true;
+    }
+
+    circles = [];
+
+    for (var i = 0; i < circles.length; i++) {
+        var curr = circles[i];
+        var c = new Circle(gameEngine);
+        gameEngine.entities.push(c);
+    }
 });
 
-socket.emit("save", { studentname: "Nina Chepovska", statename: "aState", data: circles });
-socket.emit("load", { studentname: "Nina Chepovska", statename: "aState" });
-socket.emit("load", { studentname: "Nina Chepovska", statename: "theState" });
+var gameData = {studentname: "Nina Chepovska", statename: "state"};
 
+var saveGameState = function () {
+    gameData.data = {};
+    for (var i = 0, j = 0; i < gameEngine.entities.length; i++) {
+        var ent = gameEngine.entities[i];
+        gameData.data[j++] = {radius: ent.radius, color: ent.color,
+                              velocity: ent.velocity, speed: ent.speed};
+    }
+    socket.emit("save", gameData);
+};
 
-window.onload = function () {
-    console.log("starting up da sheild");
-    var messages = [];
-    //var field = document.getElementById("field");
-    //var username = document.getElementById("username");
-    //var content = document.getElementById("content");
-
-    socket.on("Marco", function (ping) {
-        console.log(ping);
-        socket.emit("Polo");
-    });
-
-    socket.on("sync", function (data) {
-        console.log("Socket syncing");
-        messages = data;
-        //var html = '';
-        //for (var i = 0; i < messages.length; i++) {
-        //    html += '<b>' + (messages[i].username ? messages[i].username : "Server") + ": </b>";
-        //    html += messages[i].message + "<br />";
-        //}
-        //content.innerHTML = html;
-        //content.scrollTop = content.scrollHeight;
-        //console.log("sync " + html);
-    });
-
-    socket.on("message", function (data) {
-        console.log("Socket messaging");
-        //if (data.message) {
-        //    messages.push(data);
-        //    var html = '';
-        //    for (var i = 0; i < messages.length; i++) {
-        //        html += '<b>' + (messages[i].username ? messages[i].username : "Server") + ": </b>";
-        //        html += messages[i].message + "<br />";
-        //    }
-        //    content.innerHTML = html;
-        //    content.scrollTop = content.scrollHeight;
-        //} else {
-        //    console.log("No message.");
-        //}
-
-    });
-
-    // field.onkeydown = function (e) {
-    //     if (e.keyCode === 13) {
-    //         var text = field.value;
-    //         var name = username.value;
-    //         console.log("message sent " + text);
-    //         socket.emit("send", { message: text, username: name });
-    //         field.value = "";
-    //     }
-    // };
-
-    socket.on("connect", function () {
-        console.log("Socket connected.")
-    });
-    socket.on("disconnect", function () {
-        console.log("Socket disconnected.")
-    });
-    socket.on("reconnect", function () {
-        console.log("Socket reconnected.")
-    });
-
+var loadGameState = function () {
+    socket.emit("load", {studentname: "Nina Chepovska", statename: "state"});
 };
